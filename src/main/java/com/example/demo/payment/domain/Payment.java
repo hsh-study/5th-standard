@@ -78,11 +78,11 @@ public class Payment {
         }
     }
 
-    public synchronized Snapshop snapshot() {
-        return new Snapshop(id, orderId, expectedAmount, status, paymentKey, failureReason, createdAt);
+    public synchronized Snapshot snapshot() {
+        return new Snapshot(id, orderId, expectedAmount, status, paymentKey, failureReason, createdAt);
     }
 
-    public record Snapshop(
+    public record Snapshot(
         UUID id,
         String orderId,
         long expectedAmount,
