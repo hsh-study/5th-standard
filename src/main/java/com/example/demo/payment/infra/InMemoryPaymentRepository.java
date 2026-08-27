@@ -17,7 +17,7 @@ public class InMemoryPaymentRepository implements PaymentRepository {
     @Override
     public Payment save(Payment payment) {
         payments.put(payment.snapshot().id(), payment);
-        return null;
+        return payment;
     }
 
     @Override

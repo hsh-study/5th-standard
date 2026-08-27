@@ -69,7 +69,7 @@ public class PaymentService implements PaymentUseCase {
             paymentGateway.cancel(paymentKey, "amount-mismatch-" + payment.snapshot().id());
             payment.completeCancel();
         } catch (PaymentGateway.UncertainResultException uncertain) {
-            // 결과 미확정은 실패가 아니다. CANCEL_PENDING을 유지하고 조회·재시도로 수렴한다.
+            // 결과 미확정은 실패가 아니다. CANCEL_PENDING을 유지하고 조회·재시도로 처리한다.
         }
         return payment.snapshot();
     }
