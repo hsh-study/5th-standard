@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/standard_5h?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul}
+    username: ${DB_USERNAME:standard}
+    password: ${DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+course:
+  security:
+    jwt:
+      issuer: live-commerce-standard
+      access-token-ttl: 30m
+      secret: ${APP_JWT_SECRET}

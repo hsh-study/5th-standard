@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:commerce;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  kafka:
+    listener:
+      auto-startup: false
+
+course:
+  data:
+    enabled: false
+    session: 22
+  security:
+    jwt:
+      issuer: live-commerce-standard-test
+      access-token-ttl: 30m
+      secret: test-secret-must-be-at-least-thirty-two-bytes-long
+  fault-injection:
+    enabled: false

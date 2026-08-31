@@ -1,0 +1,8 @@
+### 채팅방 테스트
+
+### 환경변수
+@baseUrl = http://localhost:8080
+
+@account = member-1
+@password = password
+
