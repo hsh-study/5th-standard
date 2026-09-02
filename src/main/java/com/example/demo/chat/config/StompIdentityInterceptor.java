@@ -6,7 +6,11 @@ import com.example.demo.chat.application.ChatRoomAccessService;
 import io.jsonwebtoken.Claims;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.stomp.StompCommand;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -36,11 +40,30 @@ public class StompIdentityInterceptor implements ChannelInterceptor {
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         // TODO - 1: 수정 가능한 StompHeaderAccessor로 원본 Message를 감싸세요.
+        // ERROR-CODE StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message); // 기존 오류 코드
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        if (accessor == null) {
+            return message;
+        }
+
         // TODO - 2: CONNECT의 Authorization Header를 JWT Principal로 바꾸세요.
+        if (accessor.getCommand() == StompCommand.CONNECT) {
+            String authorization = accessor.getFirstNativeHeader("Authorization");
+            accessor.setUser(authenticateJwt(authorization));
+        }
         // TODO - 3: Principal 없는 SEND·SUBSCRIBE를 거부하세요.
+        if ((accessor.getCommand() == StompCommand.SEND || accessor.getCommand() == StompCommand.SUBSCRIBE)
+            && accessor.getUser() == null) {
+            throw new AccessDeniedException("인증되지 않은 사용자는 채팅방에 참여할 수 없습니다.");
+        }
+
         // TODO - 4: Principal의 memberId로 Destination 접근 권한을 검사하세요.
+        if (accessor.getCommand() == StompCommand.SEND || accessor.getCommand() == StompCommand.SUBSCRIBE) {
+            authorizeDestination(accessor.getDestination(), accessor.getUser().getName());
+        }
+
         // TODO - 5: 변경한 Header를 포함한 새 Message를 반환하세요.
-        return message;
+        return MessageBuilder.createMessage(message.getPayload(), accessor.getMessageHeaders());
     }
 
     private Authentication authenticateJwt(String authorization) {

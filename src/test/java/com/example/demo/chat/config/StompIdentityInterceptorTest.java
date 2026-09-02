@@ -37,7 +37,9 @@ class StompIdentityInterceptorTest {
     @Test
     void connect_frame에서_사용자를_식별한다() {
         Claims validClaims = claims("member-1");
+
         when(jwtUtil.validateToken("valid-token")).thenReturn(validClaims);
+
         StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.CONNECT);
         headers.setNativeHeader("Authorization", "Bearer valid-token");
         Message<byte[]> message = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
@@ -70,7 +72,10 @@ class StompIdentityInterceptorTest {
 
     @Test
     void 참여한_채팅방의_send를_허용한다() {
-        accessService.join("sale-1", "member-1");
+        // ERROR-CODE accessService.join("sale-1", "member-1"); // 기존 오류 코드
+        when(roomRepository.existsById("sale-1")).thenReturn(true);
+        when(participantRepository.existsByRoomIdAndMemberId("sale-1", "member-1")).thenReturn(true);
+
         StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
         headers.setDestination("/app/live-sales/sale-1/messages");
         headers.setUser(UsernamePasswordAuthenticationToken.authenticated("member-1", "n/a", List.of()));

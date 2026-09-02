@@ -8,6 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,9 +28,20 @@ public class ChatMessageService {
      */
     @Transactional
     public ChatMessage send(String roomId, String senderId, String clientMessageId, String content) {
-        // TODO 4: 저장 전에 roomId + clientMessageId로 기존 메시지를 조회하세요.
-        // TODO 4: 처음 확인된 요청만 saveOrFindDuplicate로 보내세요.
-        throw new UnsupportedOperationException("중복된 메시지 입니다.");
+
+        // TODO 1: 저장 전에 roomId + clientMessageId로 기존 메시지를 조회하세요.
+        return repository.findByRoomIdAndClientMessageId(roomId, clientMessageId)
+            .orElseGet(() ->
+                // TODO 2: 처음 확인된 요청만 INSERT 합니다.
+                repository.save(new ChatMessage(
+                UUID.randomUUID(),
+                roomId,
+                senderId,
+                clientMessageId,
+                content,
+                Instant.now()
+            )));
+
     }
 
     @Transactional(readOnly = true)
@@ -41,19 +54,5 @@ public class ChatMessageService {
             .toList();
     }
 
-    private ChatMessage saveOrFindDuplicate(
-        String roomId, String senderId, String clientMessageId, String content) {
-
-        try {
-            // flush까지 수행해 DB Unique Key 충돌을 이 Transaction 안에서 확인한다.
-            return repository.saveAndFlush(new ChatMessage(
-                UUID.randomUUID(), roomId, senderId, clientMessageId, content, Instant.now()
-            ));
-        } catch (DataIntegrityViolationException e) {
-            // 다른 요청이 먼저 저장했다면 승자의 Row를 다시 읽는다.
-            return repository.findByRoomIdAndClientMessageId(roomId, clientMessageId)
-                .orElseThrow(() -> new IllegalStateException("메시지가 존재하지 않습니다.", e));
-        }
-    }
 
 }

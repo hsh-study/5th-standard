@@ -5,8 +5,6 @@ import com.example.demo.auth.application.JwtUtil;
 import com.example.demo.auth.application.dto.IssuedToken;
 import com.example.demo.member.application.MemberService;
 import jakarta.validation.Valid;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
