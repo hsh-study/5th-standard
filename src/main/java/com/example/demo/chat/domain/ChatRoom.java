@@ -1,36 +1,43 @@
 package com.example.demo.chat.domain;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+import java.time.Instant;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class ChatRoom {
+@Entity
+@Table(name = "chat_rooms")
+public class ChatRoom {
 
-    private final String id;
-    private final Set<String> participantIds = ConcurrentHashMap.newKeySet();
+    @Id
+    @Column(name = "room_id", length = 100)
+    private String id;
+
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
+
+    protected ChatRoom() {
+    }
 
     public ChatRoom(String id) {
+        this(id, Instant.now());
+    }
+
+    public ChatRoom(String id, Instant createdAt) {
+        if (id == null || id.isBlank()) {
+            throw new IllegalArgumentException("chat room id must not be blank");
+        }
         this.id = id;
+        this.createdAt = Objects.requireNonNull(createdAt);
     }
 
-    public void join(String memberId) {
-        participantIds.add(memberId);
-    }
-
-    public void leave(String memberId) {
-        participantIds.remove(memberId);
-    }
-
-    public boolean canAccess(String memberId) {
-        return participantIds.contains(memberId);
-    }
-
-    public String id() {
-        return id;
-    }
-
-    public Set<String> participants() {
-        return Collections.unmodifiableSet(participantIds);
-    }
+    public String id() { return id; }
+    public Instant createdAt() { return createdAt; }
 }
 

@@ -1,7 +1,11 @@
-package com.example.demo.config;
+package com.example.demo.chat.config;
 
+import com.example.demo.auth.application.JwtAuthenticationFactory;
+import com.example.demo.auth.application.JwtUtil;
 import com.example.demo.chat.application.ChatRoomAccessService;
-import com.example.demo.chat.config.StompIdentityInterceptor;
+import com.example.demo.chat.domain.ChatParticipantRepository;
+import com.example.demo.chat.domain.ChatRoomRepository;
+import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.Test;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -11,10 +15,7 @@ import org.springframework.messaging.support.ExecutorSubscribableChannel;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
 
-import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,15 +25,19 @@ import static org.mockito.Mockito.when;
 
 class StompIdentityInterceptorTest {
 
-    private final JwtDecoder jwtDecoder = mock(JwtDecoder.class);
-    private final ChatRoomAccessService accessService = new ChatRoomAccessService();
+    private final JwtUtil jwtUtil = mock(JwtUtil.class);
+    private final JwtAuthenticationFactory authenticationFactory = new JwtAuthenticationFactory();
+    private final ChatRoomRepository roomRepository = mock(ChatRoomRepository.class);
+    private final ChatParticipantRepository participantRepository = mock(ChatParticipantRepository.class);
+    private final ChatRoomAccessService accessService = new ChatRoomAccessService(roomRepository, participantRepository);
     private final StompIdentityInterceptor interceptor =
-            new StompIdentityInterceptor(jwtDecoder, accessService);
+        new StompIdentityInterceptor(jwtUtil, authenticationFactory, accessService);
     private final MessageChannel channel = new ExecutorSubscribableChannel();
 
     @Test
     void connect_frame에서_사용자를_식별한다() {
-        when(jwtDecoder.decode("valid-token")).thenReturn(jwt("member-1"));
+        Claims validClaims = claims("member-1");
+        when(jwtUtil.validateToken("valid-token")).thenReturn(validClaims);
         StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.CONNECT);
         headers.setNativeHeader("Authorization", "Bearer valid-token");
         Message<byte[]> message = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
@@ -52,7 +57,7 @@ class StompIdentityInterceptorTest {
     }
 
     @Test
-    void 참여하지_않은_라이브_채티방의_send를_거절한다() {
+    void 참여하지_않은_채팅방의_send를_거절한다() {
         StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
         headers.setDestination("/app/live-sales/sale-1/messages");
         headers.setUser(UsernamePasswordAuthenticationToken.authenticated("member-1", "n/a", List.of()));
@@ -64,7 +69,7 @@ class StompIdentityInterceptorTest {
     }
 
     @Test
-    void 참여한_라이브_채티방의_send를_허용한다() {
+    void 참여한_채팅방의_send를_허용한다() {
         accessService.join("sale-1", "member-1");
         StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.SEND);
         headers.setDestination("/app/live-sales/sale-1/messages");
@@ -77,15 +82,10 @@ class StompIdentityInterceptorTest {
                 .isEqualTo("/app/live-sales/sale-1/messages");
     }
 
-    private Jwt jwt(String subject) {
-        Instant now = Instant.now();
-        return Jwt.withTokenValue("valid-token")
-                .header("alg", "HS256")
-                .issuer("live-commerce-standard")
-                .subject(subject)
-                .issuedAt(now)
-                .expiresAt(now.plusSeconds(1800))
-                .claim("roles", List.of("MEMBER"))
-                .build();
+    private Claims claims(String subject) {
+        Claims claims = mock(Claims.class);
+        when(claims.getSubject()).thenReturn(subject);
+        when(claims.get("roles", List.class)).thenReturn(List.of("MEMBER"));
+        return claims;
     }
 }

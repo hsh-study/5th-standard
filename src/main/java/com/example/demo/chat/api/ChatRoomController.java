@@ -1,6 +1,7 @@
 package com.example.demo.chat.api;
 
 import com.example.demo.chat.application.ChatRoomAccessService;
+import com.example.demo.chat.application.dto.Membership;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +20,7 @@ public class ChatRoomController {
     }
 
     @PostMapping("/join")
-    public ChatRoomAccessService.Membership join(
+    public Membership join(
             @PathVariable String liveSaleId,
             Principal principal
     ) {
