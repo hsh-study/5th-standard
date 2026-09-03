@@ -11,12 +11,13 @@ const state = {
     stomp: null,
     connected: false,
     messages: new Map(),
-    lastCommand: null
+    lastCommand: null,
+    lastSequence: 0
 };
 
 bindEvents();
 renderAuthState();
-logEvent("UI", "23회차 채팅 인증·인가와 메시지 저장 화면을 열었습니다.");
+logEvent("UI", "24회차 읽음 상태 관찰 화면을 열었습니다.");
 
 function bindEvents() {
     $$(".member-option").forEach(button => button.addEventListener("click", () => selectMember(button.dataset.member)));
@@ -24,6 +25,7 @@ function bindEvents() {
     $("#disconnect").addEventListener("click", disconnect);
     $("#message-form").addEventListener("submit", sendMessage);
     $("#retry-last").addEventListener("click", retryLastMessage);
+    $("#load-history").addEventListener("click", guard("메시지 동기화 실패", () => synchronizeMessages(0)));
     $("#open-lab").addEventListener("click", openLab);
     $("#close-lab").addEventListener("click", closeLab);
     $("#drawer-backdrop").addEventListener("click", closeLab);
@@ -51,7 +53,6 @@ async function startJourney() {
     const button = $("#start-journey");
     button.disabled = true;
     state.stomp?.disconnect();
-    state.stomp = null;
     resetJourney();
     try {
         setStep("login", "active");
@@ -99,15 +100,11 @@ async function connectStomp() {
     const client = new CourseStompClient(`${wsProtocol}//${location.host}/ws`, {
         onDebug: message => logEvent("STOMP", message),
         onFrame: frame => logEvent("FRAME", `${frame.command}${frame.headers.destination ? ` · ${frame.headers.destination}` : ""}`),
-        onError: error => {
-            setComposerState("처리 실패", "error");
-            handleError("STOMP 오류", error);
-        },
+        onError: error => handleError("STOMP 오류", error),
         onClose: close => {
             if (state.stomp !== client) return;
             state.connected = false;
             setConnection("disconnected", `연결 종료 · ${close.code}`);
-            disableComposer();
         }
     });
     state.stomp = client;
@@ -119,13 +116,10 @@ async function connectStomp() {
     $("#message-input").disabled = false;
     $("#send-message").disabled = false;
     $("#composer-help").textContent = `${state.memberId}의 메시지는 서버 Principal로 기록됩니다.`;
-    setComposerState("전송 가능", "ready");
-    setStep("message", "active");
 }
 
 function disconnect() {
     state.stomp?.disconnect();
-    state.stomp = null;
     state.connected = false;
     setConnection("disconnected", "연결 종료");
     disableComposer();
@@ -142,7 +136,6 @@ function sendMessage(event) {
     $("#message-input").value = "";
     resizeComposer();
     $("#retry-last").disabled = false;
-    setComposerState("서버 응답 대기", "sending");
 }
 
 function retryLastMessage() {
@@ -163,10 +156,39 @@ function receiveChat(message, source) {
         return;
     }
     state.messages.set(id, message);
+    state.lastSequence = Math.max(state.lastSequence, Number(message.sequence) || 0);
     renderMessages();
-    setStep("message", "done");
-    setComposerState("저장 확인", "ready");
+    updateSequence();
     logEvent(source, `sequence=${message.sequence} · sender=${message.senderId}`);
+    if (message.senderId !== state.memberId) refreshUnread().catch(() => {});
+}
+
+async function synchronizeMessages(after, { quiet = false } = {}) {
+    if (!state.token || !state.joined) {
+        if (!quiet) toast("먼저 로그인하고 채팅방에 입장하세요.", true);
+        return;
+    }
+    const messages = await api(`/api/live-sales/${encodeURIComponent(state.saleId)}/chat/messages?after=${after}&size=100`);
+    messages.forEach(message => receiveChat(message, "SYNC"));
+    if (messages.length) await markRead();
+    else if (!quiet) toast("새로 동기화할 메시지가 없습니다.");
+}
+
+async function markRead() {
+    if (!state.lastSequence) return;
+    const snapshot = await api(`/api/live-sales/${encodeURIComponent(state.saleId)}/chat/read-state`, {
+        method: "POST",
+        body: { lastReadId: state.lastSequence }
+    });
+    logEvent("READ", `requested=${state.lastSequence} · stored=${snapshot.lastReadId}`);
+    await refreshUnread();
+}
+
+async function refreshUnread() {
+    const result = await api(`/api/live-sales/${encodeURIComponent(state.saleId)}/chat/unread-count`);
+    $("#composer-help").textContent = result.count
+        ? `읽지 않은 메시지 ${result.count}개 · 동기화 후 읽음 위치를 갱신합니다.`
+        : `${state.memberId} · 마지막 읽음 ID ${state.lastSequence}`;
 }
 
 async function api(path, options = {}) {
@@ -193,35 +215,26 @@ function renderAuthState() {
 }
 
 function resetJourney() {
-    ["login", "join", "connect", "subscribe", "message"].forEach(step => setStep(step, ""));
+    ["login", "join", "connect", "subscribe"].forEach(step => setStep(step, ""));
     state.token = null;
     state.joined = false;
     state.connected = false;
     state.messages.clear();
-    state.lastCommand = null;
-    renderMessages();
+    state.lastSequence = 0;
     renderAuthState();
     setConnection("disconnected", "연결 전");
     disableComposer();
+    renderMessages();
+    updateSequence();
 }
 
 function renderMessages() {
     const list = $("#message-list");
+    const emptyChat = $("#empty-chat");
     list.replaceChildren();
     const messages = [...state.messages.values()].sort((a, b) => Number(a.sequence) - Number(b.sequence));
     if (!messages.length) {
-        const emptyChat = document.createElement("div");
-        emptyChat.id = "empty-chat";
-        emptyChat.className = "empty-chat";
-        const icon = document.createElement("div");
-        icon.className = "empty-chat-icon";
-        icon.textContent = "✦";
-        const title = document.createElement("strong");
-        title.textContent = "채팅방에 입장해 메시지를 보내세요";
-        const description = document.createElement("span");
-        description.textContent = "로그인과 STOMP 연결이 끝나면 아래 입력창이 활성화됩니다.";
-        emptyChat.append(icon, title, description);
-        list.append(emptyChat);
+        if (emptyChat) list.append(emptyChat);
         return;
     }
     messages.forEach(message => {
@@ -250,15 +263,11 @@ function disableComposer() {
     $("#disconnect").disabled = true;
     $("#message-input").disabled = true;
     $("#send-message").disabled = true;
-    $("#retry-last").disabled = true;
-    $("#composer-help").textContent = "채팅방 입장을 완료하면 메시지를 보낼 수 있습니다.";
-    setComposerState("입장 후 활성화", "waiting");
+    $("#composer-help").textContent = "연결을 완료하면 메시지를 보낼 수 있습니다.";
 }
 
-function setComposerState(label, status) {
-    const element = $("#composer-state");
-    element.className = `composer-state ${status}`;
-    element.textContent = label;
+function updateSequence() {
+    $("#sequence-label").textContent = `마지막 읽음 ID · ${state.lastSequence}`;
 }
 
 function resizeComposer() {
@@ -302,6 +311,16 @@ function handleError(title, error) {
     const message = error instanceof Error ? error.message : String(error);
     logEvent("ERROR", `${title} · ${message}`, "error");
     toast(`${title}: ${message}`, true);
+}
+
+function guard(title, action) {
+    return async () => {
+        try {
+            await action();
+        } catch (error) {
+            handleError(title, error);
+        }
+    };
 }
 
 function toast(message, error = false) {

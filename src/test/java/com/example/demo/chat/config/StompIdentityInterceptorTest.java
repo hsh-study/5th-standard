@@ -17,6 +17,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -42,6 +43,11 @@ class StompIdentityInterceptorTest {
 
         StompHeaderAccessor headers = StompHeaderAccessor.create(StompCommand.CONNECT);
         headers.setNativeHeader("Authorization", "Bearer valid-token");
+
+        AtomicReference<String> sessionUser = new AtomicReference<>();
+        headers.setUserChangeCallback(principal -> sessionUser.set(principal.getName()));
+        headers.setLeaveMutable(true);
+
         Message<byte[]> message = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
 
         Message<?> authenticated = interceptor.preSend(message, channel);

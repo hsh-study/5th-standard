@@ -10,9 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,7 +35,7 @@ public class ChatRoomAccessService {
             participantRepository.saveAndFlush(new ChatParticipant(liveSaleId, memberId, Instant.now()));
         }
         Set<String> participants = participantRepository.findAllByRoomIdOrderByIdAsc(liveSaleId).stream()
-            .map(ChatParticipant::memberId)
+            .map(ChatParticipant::getMember)
             .collect(Collectors.toUnmodifiableSet());
         return new Membership(liveSaleId, memberId, participants);
     }

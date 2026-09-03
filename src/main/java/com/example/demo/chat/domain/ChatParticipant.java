@@ -37,7 +37,7 @@ public class ChatParticipant {
         this.joinedAt = joinedAt;
     }
 
-    public String roomId() { return roomId; }
-    public String memberId() { return memberId; }
-    public Instant joinedAt() { return joinedAt; }
+    public String getRoom() { return roomId; }
+    public String getMember() { return memberId; }
+    public Instant getJoinedAt() { return joinedAt; }
 }

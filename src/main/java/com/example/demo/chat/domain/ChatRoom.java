@@ -6,10 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Entity
 @Table(name = "chat_rooms")
@@ -37,7 +34,7 @@ public class ChatRoom {
         this.createdAt = Objects.requireNonNull(createdAt);
     }
 
-    public String id() { return id; }
-    public Instant createdAt() { return createdAt; }
+    public String getId() { return id; }
+    public Instant getCreatedAt() { return createdAt; }
 }
 

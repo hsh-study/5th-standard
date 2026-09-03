@@ -54,5 +54,8 @@ public class ChatMessageService {
             .toList();
     }
 
-
+    @Transactional(readOnly = true)
+    public long countAfter(String roomId, String memberId, long lastReadId) {
+        return repository.countAfter(roomId, memberId, lastReadId);
+    }
 }
