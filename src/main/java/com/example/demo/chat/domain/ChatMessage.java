@@ -86,7 +86,7 @@ public class ChatMessage {
         return senderId;
     }
 
-    public String clientMessageId() {
+    public String getClientMessageId() {
         return clientMessageId;
     }
 

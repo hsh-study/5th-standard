@@ -156,10 +156,10 @@ function receiveChat(message, source) {
         return;
     }
     state.messages.set(id, message);
-    state.lastSequence = Math.max(state.lastSequence, Number(message.sequence) || 0);
+    state.lastSequence = Math.max(state.lastSequence, Number(message.id) || 0);
     renderMessages();
     updateSequence();
-    logEvent(source, `sequence=${message.sequence} · sender=${message.senderId}`);
+    logEvent(source, `sequence=${message.id} · sender=${message.senderId}`);
     if (message.senderId !== state.memberId) refreshUnread().catch(() => {});
 }
 
@@ -176,7 +176,7 @@ async function synchronizeMessages(after, { quiet = false } = {}) {
 
 async function markRead() {
     if (!state.lastSequence) return;
-    const snapshot = await api(`/api/live-sales/${encodeURIComponent(state.saleId)}/chat/read-state`, {
+    const snapshot = await api(`/api/live-sales/${encodeURIComponent(state.saleId)}/chat/mark-read`, {
         method: "POST",
         body: { lastReadId: state.lastSequence }
     });
@@ -232,7 +232,7 @@ function renderMessages() {
     const list = $("#message-list");
     const emptyChat = $("#empty-chat");
     list.replaceChildren();
-    const messages = [...state.messages.values()].sort((a, b) => Number(a.sequence) - Number(b.sequence));
+    const messages = [...state.messages.values()].sort((a, b) => Number(a.id) - Number(b.id));
     if (!messages.length) {
         if (emptyChat) list.append(emptyChat);
         return;
@@ -252,7 +252,7 @@ function renderMessages() {
         bubble.textContent = message.content;
         const sequence = document.createElement("span");
         sequence.className = "message-sequence";
-        sequence.textContent = `SEQ ${message.sequence} · ${shortId(message.clientMessageId)}`;
+        sequence.textContent = `SEQ ${message.id} · ${shortId(message.clientMessageId)}`;
         article.append(meta, bubble, sequence);
         list.append(article);
     });
