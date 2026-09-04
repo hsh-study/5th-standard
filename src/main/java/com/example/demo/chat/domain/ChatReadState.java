@@ -33,7 +33,15 @@ public class ChatReadState {
     }
 
     public void updateLastReadId(long lastReadId) {
+        // this.lastReadId = 3, lastReadId = 2
+        if (this.lastReadId < lastReadId) {
+            this.lastReadId = lastReadId;
+        }
     }
+
+//    public void updateLastReadId() {
+//        this.lastReadId ++;
+//    }
 
     public String getRoomId() {
         return roomId;

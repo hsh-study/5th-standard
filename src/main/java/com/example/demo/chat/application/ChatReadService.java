@@ -6,6 +6,7 @@ import com.example.demo.chat.domain.ChatMessage;
 import com.example.demo.chat.domain.ChatReadState;
 import com.example.demo.chat.domain.ChatReadStateRepository;
 import jakarta.validation.constraints.Min;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,11 +35,28 @@ public class ChatReadService {
     @Transactional
     public ChatReadSnapshot markRead(String roomId, String memberId, long lastReadId) {
         // TODO 1: 방·사용자 조합의 ChatReadState를 조회하거나 새로 만드세요.
+        ChatReadState state = stateRepository.findByRoomIdAndMemberId(roomId, memberId)
+            .orElse (new ChatReadState(roomId, memberId));
 
         // TODO 2: Entity의 updateLastReadId로 Cursor 역행을 막으세요.
 
-        // TODO 3: 상태를 저장하고 ChatReadSnapshot으로 반환하세요.드
-        throw new UnsupportedOperationException("특정 사용자가 한 번 읽은 데이터의 상태보다 더 과거의 데이터는 처리되지 않도록 해야 함.");
+//        if (state.getLastReadId() < lastReadId) {
+//            state.updateLastReadId();
+//        }
+        state.updateLastReadId(lastReadId);
+
+        // TODO 3: 상태를 저장하고 ChatReadSnapshot으로 반환하세요.
+
+        stateRepository.save(state);
+
+        return snapshot(state);
+
+//        throw new UnsupportedOperationException("특정 사용자가 한 번 읽은 데이터의 상태보다 더 과거의 데이터는 처리되지 않도록 해야 함.");
+    }
+
+    @NonNull
+    private static ChatReadSnapshot snapshot(ChatReadState state) {
+        return new ChatReadSnapshot(state.getRoomId(), state.getMemberId(), state.getLastReadId());
     }
 
     @Transactional(readOnly = true)
