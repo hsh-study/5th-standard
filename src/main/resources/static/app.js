@@ -1,3 +1,4 @@
+import { createChatState, mergeMessage, applyHistory, readCandidate, drainForward } from "/chat-state.mjs";
 import { CourseStompClient } from "/stomp-client.js";
 
 const $ = selector => document.querySelector(selector);
@@ -10,14 +11,26 @@ const state = {
     joined: false,
     stomp: null,
     connected: false,
+    manualDisconnect: false,
+    reconnectAttempt: 0,
+    reconnectTimer: null,
+    reconnectStableTimer: null,
     messages: new Map(),
     lastCommand: null,
-    lastSequence: 0
+    chat: createChatState(),
+    contextEpoch: 0,
+    requestController: new AbortController(),
+    syncInFlight: null,
+    syncTimer: null,
+    syncAttempt: 0,
+    initializing: false
 };
 
+state.messages = state.chat.messages;
 bindEvents();
 renderAuthState();
-logEvent("UI", "24회차 읽음 상태 관찰 화면을 열었습니다.");
+updateLastSeenId();
+logEvent("UI", "25회차 Cursor 조회 관찰 화면을 열었습니다.");
 
 function bindEvents() {
     $$(".member-option").forEach(button => button.addEventListener("click", () => selectMember(button.dataset.member)));
@@ -25,12 +38,15 @@ function bindEvents() {
     $("#disconnect").addEventListener("click", disconnect);
     $("#message-form").addEventListener("submit", sendMessage);
     $("#retry-last").addEventListener("click", retryLastMessage);
-    $("#load-history").addEventListener("click", guard("메시지 동기화 실패", () => synchronizeMessages(0)));
+    $("#load-older").addEventListener("click", guard("이전 대화 조회 실패", loadOlder));
+    $("#load-history").addEventListener("click", guard("메시지 동기화 실패", () => synchronizeMessages()));
+    $("#mark-read").addEventListener("click", guard("읽음 처리 실패", markRead));
     $("#open-lab").addEventListener("click", openLab);
     $("#close-lab").addEventListener("click", closeLab);
     $("#drawer-backdrop").addEventListener("click", closeLab);
     $("#clear-log").addEventListener("click", () => $("#event-log").replaceChildren());
     $("#sale-id").addEventListener("input", event => {
+        resetJourney();
         state.saleId = event.target.value.trim();
         $("#room-title").textContent = state.saleId || "채팅방";
     });
@@ -44,6 +60,7 @@ function bindEvents() {
 }
 
 function selectMember(memberId) {
+    resetJourney();
     state.memberId = memberId;
     $("#member-id").value = memberId;
     $$(".member-option").forEach(button => button.classList.toggle("active", button.dataset.member === memberId));
@@ -52,22 +69,22 @@ function selectMember(memberId) {
 async function startJourney() {
     const button = $("#start-journey");
     button.disabled = true;
-    state.stomp?.disconnect();
     resetJourney();
+    const epoch = state.contextEpoch;
     try {
         setStep("login", "active");
         await login();
         setStep("login", "done");
-        setStep("join", "active");
         await joinSale();
         setStep("join", "done");
-        setStep("connect", "active");
+        await initializeChat();
         await connectStomp();
         setStep("connect", "done");
         setStep("subscribe", "done");
-        toast(`${state.memberId}로 ${state.saleId}에 입장했습니다.`);
+        await synchronizeMessages();
+        await refreshUnread();
     } catch (error) {
-        handleError("입장 실패", error);
+        if (epoch === state.contextEpoch) handleError("입장 실패", error);
     } finally {
         button.disabled = false;
     }
@@ -95,35 +112,50 @@ async function joinSale() {
 }
 
 async function connectStomp() {
+    const epoch = state.contextEpoch;
+    state.manualDisconnect = false;
     setConnection("connecting", "연결 중");
     const wsProtocol = location.protocol === "https:" ? "wss:" : "ws:";
     const client = new CourseStompClient(`${wsProtocol}//${location.host}/ws`, {
         onDebug: message => logEvent("STOMP", message),
-        onFrame: frame => logEvent("FRAME", `${frame.command}${frame.headers.destination ? ` · ${frame.headers.destination}` : ""}`),
-        onError: error => handleError("STOMP 오류", error),
+        onFrame: frame => logEvent("FRAME", frame.command),
+        onError: error => { if (state.stomp === client) handleError("STOMP 오류", error); },
         onClose: close => {
-            if (state.stomp !== client) return;
+            if (state.stomp !== client || epoch !== state.contextEpoch) return;
             state.connected = false;
+            clearTimeout(state.reconnectStableTimer);
+            disableComposer();
             setConnection("disconnected", `연결 종료 · ${close.code}`);
+
         }
     });
     state.stomp = client;
     await client.connect({ Authorization: `Bearer ${state.token}` });
+    if (epoch !== state.contextEpoch || state.stomp !== client) { client.disconnect(); return; }
     state.connected = true;
-    client.subscribe(`/topic/live-sales/${state.saleId}`, frame => receiveChat(JSON.parse(frame.body), "MESSAGE"));
-    setConnection("connected", "구독 완료");
+    client.subscribe(`/topic/live-sales/${state.saleId}`, frame => {
+        if (epoch === state.contextEpoch && state.stomp === client) receiveChat(JSON.parse(frame.body), "MESSAGE");
+    });
+    setConnection("connected", "연결됨 · 구독 요청 전송");
+
+    clearTimeout(state.reconnectStableTimer);
+    state.reconnectStableTimer = setTimeout(() => state.reconnectAttempt = 0, 5000);
     $("#disconnect").disabled = false;
     $("#message-input").disabled = false;
     $("#send-message").disabled = false;
-    $("#composer-help").textContent = `${state.memberId}의 메시지는 서버 Principal로 기록됩니다.`;
+    updateLastSeenId();
 }
 
 function disconnect() {
-    state.stomp?.disconnect();
+    state.manualDisconnect = true;
+    cancelChatWork();
+    const client = state.stomp;
+    state.stomp = null;
+    client?.disconnect();
     state.connected = false;
-    setConnection("disconnected", "연결 종료");
+    setConnection("disconnected", "연결 종료 · 목록 유지");
     disableComposer();
-    logEvent("STOMP", "사용자가 DISCONNECT를 요청했습니다.");
+    updateLastSeenId();
 }
 
 function sendMessage(event) {
@@ -139,7 +171,7 @@ function sendMessage(event) {
 }
 
 function retryLastMessage() {
-    if (!state.lastCommand) return;
+    if (!state.lastCommand || !state.connected) return;
     publishChat(state.lastCommand);
     logEvent("RETRY", `동일 clientMessageId 재전송 · ${shortId(state.lastCommand.clientMessageId)}`);
 }
@@ -150,61 +182,75 @@ function publishChat(command) {
 }
 
 function receiveChat(message, source) {
-    const id = String(message.messageId);
-    if (state.messages.has(id)) {
-        logEvent("DEDUP", `${shortId(id)} 화면 중복 제거`);
-        return;
-    }
-    state.messages.set(id, message);
-    state.lastSequence = Math.max(state.lastSequence, Number(message.id) || 0);
+    mergeMessage(state.chat, message);
     renderMessages();
-    updateSequence();
-    logEvent(source, `sequence=${message.id} · sender=${message.senderId}`);
-    if (message.senderId !== state.memberId) refreshUnread().catch(() => {});
+    updateLastSeenId();
+    logEvent(source, `id=${message.id} · sender=${message.senderId}`);
 }
 
-async function synchronizeMessages(after, { quiet = false } = {}) {
-    if (!state.token || !state.joined) {
-        if (!quiet) toast("먼저 로그인하고 채팅방에 입장하세요.", true);
-        return;
+async function synchronizeMessages(all = false) {
+    if (!state.token || !state.joined) throw new Error("먼저 로그인하고 입장하세요.");
+    if (!state.chat.initialized) { await initializeChat(); }
+    if (state.syncInFlight) return state.syncInFlight;
+    const epoch = state.contextEpoch;
+    const chat = state.chat;
+    const task = drainForward(chat, cursor => api(`${chatPath()}/messages?cursor=${cursor}&size=30`), {
+        all, current: () => epoch === state.contextEpoch,
+        onPage: page => { renderMessages(); updateLastSeenId(); logEvent("CURSOR", `next=${page.nextCursor} · hasNext=${page.hasNext}`); }
+    });
+    state.syncInFlight = task;
+    try {
+        const complete = await task;
+        if (epoch !== state.contextEpoch) return false;
+        state.syncAttempt = 0;
+        if (complete) { chat.status = 'complete'; toast("조회 완료 · 읽음 위치는 유지했습니다."); }
+        else if (all) scheduleSync(0);
+        updateLastSeenId();
+        return complete;
+    } catch (error) {
+        if (epoch === state.contextEpoch) {
+            chat.status = 'failed';
+
+            updateLastSeenId();
+        }
+        throw error;
+    } finally {
+        if (state.syncInFlight === task) state.syncInFlight = null;
     }
-    const messages = await api(`/api/live-sales/${encodeURIComponent(state.saleId)}/chat/messages?after=${after}&size=100`);
-    messages.forEach(message => receiveChat(message, "SYNC"));
-    if (messages.length) await markRead();
-    else if (!quiet) toast("새로 동기화할 메시지가 없습니다.");
 }
 
 async function markRead() {
-    if (!state.lastSequence) return;
-    const snapshot = await api(`/api/live-sales/${encodeURIComponent(state.saleId)}/chat/mark-read`, {
-        method: "POST",
-        body: { lastReadId: state.lastSequence }
-    });
-    logEvent("READ", `requested=${state.lastSequence} · stored=${snapshot.lastReadId}`);
+    const candidate = readCandidate(state.chat);
+    if (candidate === null) throw new Error("이전 미읽음 대화를 더 불러오거나 새 메시지를 동기화하세요.");
+    const snapshot = await api(`${chatPath()}/mark-read`, { method: "POST", body: { lastReadId: candidate } });
+    state.chat.serverLastReadId = snapshot.lastReadId;
+    updateLastSeenId();
     await refreshUnread();
 }
 
 async function refreshUnread() {
-    const result = await api(`/api/live-sales/${encodeURIComponent(state.saleId)}/chat/unread-count`);
-    $("#composer-help").textContent = result.count
-        ? `읽지 않은 메시지 ${result.count}개 · 동기화 후 읽음 위치를 갱신합니다.`
-        : `${state.memberId} · 마지막 읽음 ID ${state.lastSequence}`;
+    const result = await api(`${chatPath()}/unread-count`);
+    $("#composer-help").textContent = `미읽음 ${result.count}개 · 저장된 읽음 ID ${state.chat.serverLastReadId}`;
 }
 
 async function api(path, options = {}) {
+    const epoch = state.contextEpoch;
+    const signal = state.requestController.signal;
     const method = options.method ?? "GET";
     const headers = { ...(options.headers ?? {}) };
     if (options.auth !== false && state.token) headers.Authorization = `Bearer ${state.token}`;
     if (options.body !== undefined) headers["Content-Type"] = "application/json";
     logEvent("HTTP", `${method} ${path}`);
     const response = await fetch(path, {
+        signal,
         method,
         headers,
         body: options.body === undefined ? undefined : JSON.stringify(options.body)
     });
     const text = await response.text();
+    if (epoch !== state.contextEpoch) throw new DOMException("이전 화면 요청", "AbortError");
     const data = text ? safeJson(text) : null;
-    if (!response.ok) throw new Error(`${response.status} ${data?.message || data?.detail || text || response.statusText}`.trim());
+    if (!response.ok) { const error = new Error(`${response.status} ${data?.message || data?.detail || text || response.statusText}`.trim()); error.status = response.status; throw error; }
     return data;
 }
 
@@ -215,17 +261,19 @@ function renderAuthState() {
 }
 
 function resetJourney() {
+    disconnect();
     ["login", "join", "connect", "subscribe"].forEach(step => setStep(step, ""));
     state.token = null;
     state.joined = false;
-    state.connected = false;
-    state.messages.clear();
-    state.lastSequence = 0;
+    state.chat = createChatState();
+    state.messages = state.chat.messages;
+    state.lastCommand = null;
+    state.reconnectAttempt = 0;
+    state.syncAttempt = 0;
+    $("#retry-last").disabled = true;
     renderAuthState();
-    setConnection("disconnected", "연결 전");
-    disableComposer();
     renderMessages();
-    updateSequence();
+    updateLastSeenId();
 }
 
 function renderMessages() {
@@ -250,10 +298,10 @@ function renderMessages() {
         const bubble = document.createElement("div");
         bubble.className = "message-bubble";
         bubble.textContent = message.content;
-        const sequence = document.createElement("span");
-        sequence.className = "message-sequence";
-        sequence.textContent = `SEQ ${message.id} · ${shortId(message.clientMessageId)}`;
-        article.append(meta, bubble, sequence);
+        const idBadge = document.createElement("span");
+        idBadge.className = "message-id";
+        idBadge.textContent = `ID ${message.id} · ${shortId(message.clientMessageId)}`;
+        article.append(meta, bubble, idBadge);
         list.append(article);
     });
     list.scrollTop = list.scrollHeight;
@@ -263,11 +311,16 @@ function disableComposer() {
     $("#disconnect").disabled = true;
     $("#message-input").disabled = true;
     $("#send-message").disabled = true;
+    $("#mark-read").disabled = true;
     $("#composer-help").textContent = "연결을 완료하면 메시지를 보낼 수 있습니다.";
 }
 
-function updateSequence() {
-    $("#sequence-label").textContent = `마지막 읽음 ID · ${state.lastSequence}`;
+function updateLastSeenId() {
+    const chat = state.chat;
+    $("#last-id-label").textContent = `조회 ${chat.syncCursor} · 수신 ${chat.maxReceivedId} · 읽음 ${chat.serverLastReadId} · ${chat.status}`;
+    $("#mark-read").disabled = readCandidate(chat) === null;
+    $("#load-older").disabled = !state.joined || (chat.initialized && !chat.hasPrevious);
+    $("#load-older").textContent = chat.initialized ? "이전 대화 더 보기" : "최초 대화 다시 조회";
 }
 
 function resizeComposer() {
@@ -355,4 +408,60 @@ function shortId(value) {
 function formatTime(value) {
     if (!value) return "방금";
     return new Date(value).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function chatPath() { return `/api/live-sales/${encodeURIComponent(state.saleId)}/chat`; }
+function cancelChatWork() {
+    state.contextEpoch++;
+    state.requestController.abort();
+    state.requestController = new AbortController();
+    clearTimeout(state.syncTimer);
+    clearTimeout(state.reconnectTimer);
+    clearTimeout(state.reconnectStableTimer);
+    state.syncTimer = state.reconnectTimer = null;
+    state.syncInFlight = null;
+    state.initializing = false;
+    state.historyLoading = false;
+}
+async function initializeChat() {
+    if (state.initializing) throw new Error("최초 대화 조회 중입니다.");
+    const epoch = state.contextEpoch;
+    state.initializing = true;
+    try {
+        const snapshot = await api(`${chatPath()}/read-state`);
+        const page = await api(`${chatPath()}/messages/history?size=30`);
+        state.chat.serverLastReadId = snapshot.lastReadId;
+        applyHistory(state.chat, page, true);
+        renderMessages();
+        updateLastSeenId();
+    } finally { if (epoch === state.contextEpoch) state.initializing = false; }
+}
+async function loadOlder() {
+    if (!state.joined) throw new Error("먼저 입장하세요.");
+    if (!state.chat.initialized) return initializeChat();
+    if (!state.chat.hasPrevious || state.historyLoading) return;
+    const epoch = state.contextEpoch;
+    state.historyLoading = true;
+    const list = $("#message-list"), previousHeight = list.scrollHeight, previousTop = list.scrollTop;
+    try {
+        const page = await api(`${chatPath()}/messages/history?before=${state.chat.beforeCursor}&size=30`);
+        applyHistory(state.chat, page);
+        renderMessages();
+        list.scrollTop = previousTop + list.scrollHeight - previousHeight;
+        updateLastSeenId();
+    } finally { if (epoch === state.contextEpoch) state.historyLoading = false; }
+}
+function stopOnAuth(error) {
+    if (error.status !== 401 && error.status !== 403) return false;
+    disconnect();
+    toast("인증 또는 참여 권한을 확인하고 다시 입장하세요.", true);
+    return true;
+}
+function scheduleSync(delay) {
+    clearTimeout(state.syncTimer);
+    const epoch = state.contextEpoch;
+    state.syncTimer = setTimeout(() => {
+        state.syncTimer = null;
+        if (epoch === state.contextEpoch && !state.manualDisconnect) synchronizeMessages(true).catch(error => handleError("동기화 실패", error));
+    }, delay);
 }

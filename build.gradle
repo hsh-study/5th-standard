@@ -8,6 +8,10 @@ group = 'sparta.standard'
 version = '0.0.1-SNAPSHOT'
 description = 'demo'
 
+ext {
+    querydslVersion = '7.6'
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
@@ -31,6 +35,14 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
+
+    // Querydsl JPA
+    implementation "io.github.openfeign.querydsl:querydsl-jpa:${querydslVersion}"
+
+    // Q 클래스 생성
+    annotationProcessor "io.github.openfeign.querydsl:querydsl-apt:${querydslVersion}:jpa"
+    annotationProcessor 'jakarta.annotation:jakarta.annotation-api'
+    annotationProcessor 'jakarta.persistence:jakarta.persistence-api'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.testcontainers:junit-jupiter'

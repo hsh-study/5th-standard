@@ -14,7 +14,7 @@
             <span class="brand-mark">LC</span>
             <span><strong>LIVE COMMERCE</strong><small>STANDARD LAB</small></span>
         </a>
-        <div class="session-progress"><span class="eyebrow">누적 진행</span><strong>22 → 24회차</strong></div>
+        <div class="session-progress"><span class="eyebrow">누적 진행</span><strong>22 → 25회차</strong></div>
         <div class="topbar-actions">
             <span id="global-status" class="status-pill neutral"><i></i> 로그인 전</span>
             <button id="open-lab" class="icon-button" type="button" aria-label="관찰 로그 열기">LOG</button>
@@ -54,8 +54,10 @@
                 </div>
             </div>
             <div class="chat-tools">
-                <button id="load-history" class="text-button" type="button">동기화하고 읽음 처리</button>
-                <span id="sequence-label">마지막 읽음 ID · 0</span>
+                <button id="load-older" class="text-button" type="button" disabled>이전 대화 더 보기</button>
+                <button id="load-history" class="text-button" type="button">새 메시지 30건 동기화</button>
+                <button id="mark-read" class="text-button" type="button" disabled>여기까지 읽음</button>
+                <span id="last-id-label">마지막 확인 ID · 0</span>
             </div>
             <form id="message-form" class="composer">
                 <label class="sr-only" for="message-input">메시지</label>
@@ -71,7 +73,7 @@
         <aside class="control-column" aria-label="수업 제어 패널">
             <article class="panel control-card">
                 <div class="panel-heading">
-                    <div><p class="eyebrow">SESSION 24</p><h2>읽음 상태 실습</h2></div>
+                    <div><p class="eyebrow">SESSION 25</p><h2>Cursor 조회 실습</h2></div>
                     <span id="member-badge" class="member-badge">GUEST</span>
                 </div>
                 <label class="field-label" for="member-id">교육용 계정</label>
