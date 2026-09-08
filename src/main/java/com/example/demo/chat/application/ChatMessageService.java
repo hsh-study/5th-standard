@@ -1,5 +1,7 @@
 package com.example.demo.chat.application;
 
+import com.example.demo.chat.application.dto.ChatMessageResponse;
+import com.example.demo.chat.application.dto.CursorResponse;
 import com.example.demo.chat.domain.ChatMessage;
 import com.example.demo.chat.domain.ChatMessageRepository;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -29,10 +31,10 @@ public class ChatMessageService {
     @Transactional
     public ChatMessage send(String roomId, String senderId, String clientMessageId, String content) {
 
-        // TODO 1: 저장 전에 roomId + clientMessageId로 기존 메시지를 조회하세요.
+        // 저장 전에 roomId + clientMessageId로 기존 메시지를 조회하세요.
         return repository.findByRoomIdAndClientMessageId(roomId, clientMessageId)
             .orElseGet(() ->
-                // TODO 2: 처음 확인된 요청만 INSERT 합니다.
+                // 처음 확인된 요청만 INSERT 합니다.
                 repository.save(new ChatMessage(
                 UUID.randomUUID(),
                 roomId,
@@ -44,6 +46,29 @@ public class ChatMessageService {
 
     }
 
+    /**
+     * Querydsl을 적용한 Repository 메서드 사용으로 변경
+     */
+    @Transactional(readOnly = true)
+    public CursorResponse<ChatMessageResponse> search(String roomId, long afterSequence, int size) {
+
+        List<ChatMessageResponse> fetched = repository.search(roomId, afterSequence, size);
+
+        boolean hasNext = fetched.size() > size;
+        Long lastId = hasNext ? fetched.get(size - 1).id() : null;
+        List<ChatMessageResponse> items = fetched.subList(0, Math.min(size, fetched.size()));
+
+
+        return new CursorResponse<>(items, lastId, hasNext);
+    }
+
+    /**
+     * Querydsl 적용전
+     * @param roomId
+     * @param afterSequence
+     * @param size
+     * @return
+     */
     @Transactional(readOnly = true)
     public List<ChatMessage> findAfter(String roomId, long afterSequence, int size) {
         return repository.findByRoomIdAndIdGreaterThanOrderByIdAsc(

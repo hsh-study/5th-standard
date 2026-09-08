@@ -3,26 +3,27 @@ package com.example.demo.chat.application;
 import com.example.demo.chat.application.dto.ChatReadSnapshot;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.boot.test.context.SpringBootTest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
-@Import({ChatMessageService.class, ChatReadService.class})
+@SpringBootTest
 public class ChatReadServiceTest {
     @Autowired
     private ChatMessageService messages;
 
     @Autowired
-    private ChatReadService reads;
+    private ChatReadService readService;
 
     @Test
     void 마지막으로_읽은_메시지_id는_뒤로_가지_않는다() {
-        reads.markRead("room-1", "member-1", 10);
-        ChatReadSnapshot result = reads.markRead("room-1", "member-1", 3);
+        var first = messages.send("room-1", "member-2", "read-1", "first");
+        var last = messages.send("room-1", "member-2", "read-2", "last");
 
-        assertThat(result.lastReadId()).isEqualTo(10);
+        readService.markRead("room-1", "member-1", last.getId());
+        ChatReadSnapshot result = readService.markRead("room-1", "member-1", first.getId());
+
+        assertThat(result.lastReadId()).isEqualTo(last.getId());
     }
 
     @Test
@@ -30,6 +31,6 @@ public class ChatReadServiceTest {
         messages.send("room-1", "member-1", "c1", "mine");
         messages.send("room-1", "member-2", "c2", "theirs");
 
-        assertThat(reads.unreadCount("room-1", "member-1")).isEqualTo(1);
+        assertThat(readService.unreadCount("room-1", "member-1")).isEqualTo(1);
     }
 }

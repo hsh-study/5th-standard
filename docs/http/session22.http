@@ -6,3 +6,18 @@
 @account = member-1
 @password = password
 
+
+# @no-cookie-jar
+POST {{baseUrl}}/api/auth/token
+Content-Type: application/json
+
+{
+  "memberId": "{{account}}",
+  "password": "{{password}}"
+}
+
+> {%
+    client.global.set("userToken", response.body.result.accessToken);
+    client.log(`User Access Token: ${client.global.get("userToken")}`);
+%}
+

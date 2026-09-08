@@ -39,7 +39,7 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/stomp-client.js").permitAll()
+                .requestMatchers("/", "/index.html", "/styles.css", "/app.js", "/stomp-client.js", "/chat-state.mjs").permitAll()
                 .requestMatchers("/api/auth/**", "/api/webhooks/payments", "/ws/**").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(

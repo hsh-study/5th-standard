@@ -1,4 +1,4 @@
-/** 25회차: 화면 중복, 조회 경계, 사용자 읽음 경계는 서로 다른 상태다. */
+/** 화면 중복, 조회 경계, 사용자 읽음 경계는 서로 다른 상태다. */
 export function createChatState() {
     return { messages: new Map(), syncCursor: 0, maxReceivedId: 0, beforeCursor: null,
         hasPrevious: false, serverLastReadId: 0, initialized: false, status: 'idle' };
@@ -32,7 +32,7 @@ export function readCandidate(state) {
     const covered = !state.hasPrevious || Number(state.beforeCursor) <= state.serverLastReadId;
     return state.initialized && covered && state.syncCursor > state.serverLastReadId ? state.syncCursor : null;
 }
-/** 26회차 복구는 같은 전진 계약을 반복한다. 호출자는 컨텍스트 취소를 담당한다. */
+
 export async function drainForward(state, fetchPage, { all = false, current = () => true,
     onPage = () => {}, maxPages = 10, now = Date.now, budgetMs = 5000 } = {}) {
     const started = now();
@@ -44,5 +44,5 @@ export async function drainForward(state, fetchPage, { all = false, current = ()
         if (!page.hasNext) return true;
         if (!all || now() - started >= budgetMs) return false;
     }
-    return false; // 예산 소진은 완료가 아니다. 마지막 성공 커서에서 다음 실행을 이어간다.
+    return false;
 }

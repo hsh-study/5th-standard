@@ -2,13 +2,17 @@ package com.example.demo.chat.application;
 
 import com.example.demo.chat.domain.ChatMessage;
 import com.example.demo.chat.domain.ChatMessageRepository;
+import com.example.demo.chat.infra.ChatMessageRepositoryImpl;
+import com.example.demo.core.config.QuerydslConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
+@SpringBootTest
 class ChatMessageServiceTest {
 
     private final ChatMessageService service;
@@ -25,7 +29,11 @@ class ChatMessageServiceTest {
 
         assertThat(duplicate.getMessageId()).isEqualTo(first.getMessageId());
         assertThat(duplicate.getId()).isEqualTo(first.getId());
-        assertThat(service.findAfter("sale-1", 0, 30)).containsExactly(first);
+        assertThat(service.findAfter("sale-1", 0, 30))
+            .hasSize(1)
+            .first()
+            .extracting(ChatMessage::getMessageId)
+            .isEqualTo(first.getMessageId());
     }
 
     @Test

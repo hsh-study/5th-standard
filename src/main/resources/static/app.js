@@ -84,6 +84,7 @@ async function startJourney() {
         await synchronizeMessages();
         await refreshUnread();
     } catch (error) {
+        console.error(error);
         if (epoch === state.contextEpoch) handleError("입장 실패", error);
     } finally {
         button.disabled = false;
