@@ -2,6 +2,8 @@ package com.example.demo.member.application;
 
 import com.example.demo.member.domain.Member;
 import com.example.demo.member.domain.MemberRepository;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -15,6 +17,7 @@ import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class MemberService {
 
     private static final String AUTHENTICATION_FAILED_MESSAGE = "인증에 실패했습니다.";
@@ -22,13 +25,13 @@ public class MemberService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final String dummyPasswordHash;
+    private String dummyPasswordHash;
 
-    public MemberService(MemberRepository memberRepository, PasswordEncoder passwordEncoder) {
-        this.memberRepository = memberRepository;
-        this.passwordEncoder = passwordEncoder;
+    @PostConstruct
+    public void encodeDummyPassword() {
         this.dummyPasswordHash = passwordEncoder.encode(NOT_FOUND_PROTECTION_PASSWORD);
     }
+
 
     public Authentication authenticate(String memberId, String rawPassword) {
         Member member = memberRepository.findById(memberId).orElse(null);

@@ -7,6 +7,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -17,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
@@ -24,16 +26,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final JwtAuthenticationFactory authenticationFactory;
     private final AuthenticationEntryPoint authenticationEntryPoint;
-
-    public JwtAuthenticationFilter(
-        JwtUtil jwtUtil,
-        JwtAuthenticationFactory authenticationFactory,
-        AuthenticationEntryPoint authenticationEntryPoint
-    ) {
-        this.jwtUtil = jwtUtil;
-        this.authenticationFactory = authenticationFactory;
-        this.authenticationEntryPoint = authenticationEntryPoint;
-    }
 
     @Override
     protected void doFilterInternal(

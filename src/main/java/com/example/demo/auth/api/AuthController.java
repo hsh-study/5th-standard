@@ -5,22 +5,19 @@ import com.example.demo.auth.application.JwtUtil;
 import com.example.demo.auth.application.dto.IssuedToken;
 import com.example.demo.member.application.MemberService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final MemberService memberService;
     private final JwtUtil jwtUtil;
-
-    public AuthController(MemberService memberService, JwtUtil jwtUtil) {
-        this.memberService = memberService;
-        this.jwtUtil = jwtUtil;
-    }
 
     @PostMapping("/token")
     public IssuedToken token(@Valid @RequestBody LoginRequest request) {

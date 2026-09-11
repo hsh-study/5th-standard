@@ -1,10 +1,8 @@
 package com.example.demo.chat.application;
 
 import com.example.demo.chat.application.dto.Membership;
-import com.example.demo.chat.domain.ChatParticipant;
-import com.example.demo.chat.domain.ChatParticipantRepository;
-import com.example.demo.chat.domain.ChatRoom;
-import com.example.demo.chat.domain.ChatRoomRepository;
+import com.example.demo.chat.domain.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,25 +12,19 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ChatRoomAccessService {
 
     private final ChatRoomRepository roomRepository;
     private final ChatParticipantRepository participantRepository;
 
-    public ChatRoomAccessService(
-        ChatRoomRepository roomRepository,
-        ChatParticipantRepository participantRepository
-    ) {
-        this.roomRepository = roomRepository;
-        this.participantRepository = participantRepository;
-    }
-
     @Transactional
     public Membership join(String liveSaleId, String memberId) {
+
         roomRepository.findById(liveSaleId)
-            .orElseGet(() -> roomRepository.save(new ChatRoom(liveSaleId, Instant.now())));
+            .orElseGet(() -> roomRepository.save(ChatRoom.create(liveSaleId, Instant.now())));
         if (!participantRepository.existsByRoomIdAndMemberId(liveSaleId, memberId)) {
-            participantRepository.saveAndFlush(new ChatParticipant(liveSaleId, memberId, Instant.now()));
+            participantRepository.saveAndFlush(ChatParticipant.create(liveSaleId, memberId, Instant.now()));
         }
         Set<String> participants = participantRepository.findAllByRoomIdOrderByIdAsc(liveSaleId).stream()
             .map(ChatParticipant::getMember)

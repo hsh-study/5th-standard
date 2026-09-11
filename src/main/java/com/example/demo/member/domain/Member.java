@@ -1,12 +1,17 @@
 package com.example.demo.member.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Entity
+@Getter
 @Table(name = "members")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Member {
 
     @Id
@@ -35,9 +40,7 @@ public class Member {
     @Enumerated(EnumType.STRING)
     private Set<MemberRole> roles = new LinkedHashSet<>();
 
-    protected Member() {}
-
-    public Member(
+    private Member(
         String memberId,
         String displayName,
         String encodedPassword,
@@ -51,24 +54,8 @@ public class Member {
         this.roles = new LinkedHashSet<>(roles);
     }
 
-    public String getMemberId() {
-        return memberId;
-    }
-
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    public String getEncodedPassword() {
-        return encodedPassword;
-    }
-
-    public Set<MemberRole> getRoles() {
-        return Set.copyOf(roles);
-    }
-
-    public boolean isEnabled() {
-        return enabled;
+    public static Member create(String memberId, String displayName, String encodedPassword, boolean enabled, Set<MemberRole> roles) {
+        return new Member(memberId, displayName, encodedPassword, enabled, roles);
     }
 
 }

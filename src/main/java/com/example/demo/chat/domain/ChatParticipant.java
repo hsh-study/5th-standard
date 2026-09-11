@@ -1,6 +1,8 @@
 package com.example.demo.chat.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
@@ -13,6 +15,7 @@ import java.time.Instant;
         ),
         indexes = @Index(name = "idx_chat_participant_member", columnList = "member_id,room_id")
 )
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatParticipant {
 
     @Id
@@ -28,13 +31,14 @@ public class ChatParticipant {
     @Column(name = "joined_at", nullable = false, updatable = false)
     private Instant joinedAt;
 
-    protected ChatParticipant() {
-    }
-
-    public ChatParticipant(String roomId, String memberId, Instant joinedAt) {
+    private ChatParticipant(String roomId, String memberId, Instant joinedAt) {
         this.roomId = roomId;
         this.memberId = memberId;
         this.joinedAt = joinedAt;
+    }
+
+    public static ChatParticipant create(String liveSaleId, String memberId, Instant now) {
+        return new ChatParticipant(liveSaleId, memberId, now);
     }
 
     public String getRoom() { return roomId; }

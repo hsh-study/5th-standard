@@ -4,6 +4,7 @@ import com.example.demo.payment.application.port.PaymentUseCase;
 import com.example.demo.payment.domain.Payment;
 import com.example.demo.payment.domain.PaymentRepository;
 import com.example.demo.payment.domain.PaymentStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -12,17 +13,13 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@RequiredArgsConstructor
 public class PaymentService implements PaymentUseCase {
 
     private final PaymentRepository paymentRepository;
     private final PaymentGateway paymentGateway;
     private final Map<String, Payment.Snapshot> idempotentResults = new ConcurrentHashMap<>();
     private final Set<String> processedWebhookEvents = ConcurrentHashMap.newKeySet();
-
-    public PaymentService(PaymentRepository paymentRepository, PaymentGateway paymentGateway) {
-        this.paymentRepository = paymentRepository;
-        this.paymentGateway = paymentGateway;
-    }
 
 
     @Override

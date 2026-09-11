@@ -14,6 +14,7 @@ import com.example.demo.chat.domain.ChatMessage;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Slice;
 import org.springframework.validation.annotation.Validated;
@@ -22,18 +23,14 @@ import org.springframework.web.bind.annotation.*;
 import java.security.Principal;
 import java.util.List;
 
-@RestController
 @Validated
+@RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/live-sales/{liveSaleId}/chat")
 public class ChatReadController {
 
     private final ChatReadService readService;
     private final ChatRoomAccessService accessService;
-
-    public ChatReadController(ChatReadService readService, ChatRoomAccessService accessService) {
-        this.readService = readService;
-        this.accessService = accessService;
-    }
 
     @GetMapping("/messages-new")
     public List<ChatMessage> messages(

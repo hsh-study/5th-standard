@@ -1,11 +1,14 @@
 package com.example.demo.chat.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
     name = "chat_messages",
     uniqueConstraints = @UniqueConstraint(
@@ -37,9 +40,6 @@ public class ChatMessage {
 
     @Column(name = "sent_at", nullable = false, updatable = false)
     private Instant sentAt;
-
-    protected ChatMessage() {
-    }
 
     public ChatMessage(
         UUID messageId,

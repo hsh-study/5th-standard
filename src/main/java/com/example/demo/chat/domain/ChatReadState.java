@@ -1,6 +1,9 @@
 package com.example.demo.chat.domain;
 
 import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(
@@ -10,6 +13,8 @@ import jakarta.persistence.*;
         columnNames = {"room_id", "member_id"}
     )
 )
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatReadState {
 
     @Id
@@ -25,11 +30,13 @@ public class ChatReadState {
     @Column(name = "last_read_id", nullable = false)
     private long lastReadId;
 
-    protected ChatReadState() {}
-
-    public ChatReadState(String roomId, String memberId) {
+    private ChatReadState(String roomId, String memberId) {
         this.roomId = roomId;
         this.memberId = memberId;
+    }
+
+    public static ChatReadState create(String roomId, String memberId) {
+        return new ChatReadState(roomId, memberId);
     }
 
     public void updateLastReadId(long lastReadId) {
@@ -38,21 +45,4 @@ public class ChatReadState {
             this.lastReadId = lastReadId;
         }
     }
-
-//    public void updateLastReadId() {
-//        this.lastReadId ++;
-//    }
-
-    public String getRoomId() {
-        return roomId;
-    }
-
-    public String getMemberId() {
-        return memberId;
-    }
-
-    public long getLastReadId() {
-        return lastReadId;
-    }
-
 }

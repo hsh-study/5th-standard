@@ -36,6 +36,7 @@ function bindEvents() {
     $$(".member-option").forEach(button => button.addEventListener("click", () => selectMember(button.dataset.member)));
     $("#start-journey").addEventListener("click", startJourney);
     $("#disconnect").addEventListener("click", disconnect);
+    $("#reconnect").addEventListener("click", guard("재연결 실패", reconnect));
     $("#message-form").addEventListener("submit", sendMessage);
     $("#retry-last").addEventListener("click", retryLastMessage);
     $("#load-older").addEventListener("click", guard("이전 대화 조회 실패", loadOlder));
@@ -84,7 +85,6 @@ async function startJourney() {
         await synchronizeMessages();
         await refreshUnread();
     } catch (error) {
-        console.error(error);
         if (epoch === state.contextEpoch) handleError("입장 실패", error);
     } finally {
         button.disabled = false;
@@ -465,4 +465,17 @@ function scheduleSync(delay) {
         state.syncTimer = null;
         if (epoch === state.contextEpoch && !state.manualDisconnect) synchronizeMessages(true).catch(error => handleError("동기화 실패", error));
     }, delay);
+}
+
+async function reconnect() {
+    if (!state.token || !state.joined) throw new Error("먼저 입장하세요.");
+    if (state.connecting) return;
+    state.connecting = true;
+    const epoch = state.contextEpoch;
+    try {
+        if (!state.connected) await connectStomp();
+        if (epoch !== state.contextEpoch) return;
+        await synchronizeMessages(true);
+    } catch (error) { stopOnAuth(error); throw error; }
+    finally { state.connecting = false; }
 }

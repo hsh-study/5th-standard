@@ -81,7 +81,7 @@ class SecurityBaselineIntegrationTest {
 
     @Test
     void DB에서_정지한_회원은_로그인할_수_없다() throws Exception {
-        memberRepository.save(new Member(
+        memberRepository.save(Member.create(
             "disabled-member",
             "정지 회원",
             passwordEncoder.encode("password"),

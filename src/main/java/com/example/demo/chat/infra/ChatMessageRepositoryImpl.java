@@ -5,6 +5,7 @@ import com.example.demo.chat.domain.ChatMessageCustomRepository;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.impl.JPAQueryFactory;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Repository;
 
@@ -13,13 +14,10 @@ import java.util.List;
 import static com.example.demo.chat.domain.QChatMessage.chatMessage;
 
 @Repository
+@RequiredArgsConstructor
 public class ChatMessageRepositoryImpl implements ChatMessageCustomRepository {
 
     private final JPAQueryFactory jpaQueryFactory;
-
-    public ChatMessageRepositoryImpl(JPAQueryFactory jpaQueryFactory) {
-        this.jpaQueryFactory = jpaQueryFactory;
-    }
 
     /**
      * Page (PageImpl) 을 이용한 조회 결과

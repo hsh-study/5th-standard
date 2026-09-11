@@ -4,12 +4,18 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.Objects;
 
 @Entity
+@Getter
 @Table(name = "chat_rooms")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class ChatRoom {
 
     @Id
@@ -19,14 +25,7 @@ public class ChatRoom {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
-    protected ChatRoom() {
-    }
-
-    public ChatRoom(String id) {
-        this(id, Instant.now());
-    }
-
-    public ChatRoom(String id, Instant createdAt) {
+    private ChatRoom(String id, Instant createdAt) {
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("chat room id must not be blank");
         }
@@ -34,7 +33,10 @@ public class ChatRoom {
         this.createdAt = Objects.requireNonNull(createdAt);
     }
 
-    public String getId() { return id; }
-    public Instant getCreatedAt() { return createdAt; }
+
+    public static ChatRoom create(String liveSaleId, Instant now) {
+        return new ChatRoom(liveSaleId, now);
+    }
+
 }
 

@@ -4,6 +4,7 @@ import com.example.demo.auth.application.JwtAuthenticationFactory;
 import com.example.demo.auth.application.JwtUtil;
 import com.example.demo.chat.application.ChatRoomAccessService;
 import io.jsonwebtoken.Claims;
+import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.messaging.simp.stomp.StompCommand;
@@ -16,22 +17,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class StompIdentityInterceptor implements ChannelInterceptor {
 
 
     private final JwtUtil jwtUtil;
     private final JwtAuthenticationFactory authenticationFactory;
     private final ChatRoomAccessService accessService;
-
-    public StompIdentityInterceptor(
-        JwtUtil jwtUtil,
-        JwtAuthenticationFactory authenticationFactory,
-        ChatRoomAccessService accessService
-    ) {
-        this.jwtUtil = jwtUtil;
-        this.authenticationFactory = authenticationFactory;
-        this.accessService = accessService;
-    }
 
     /**
      * CONNECT에서 만든 Principal을 SEND·SUBSCRIBE까지 이어 붙이고

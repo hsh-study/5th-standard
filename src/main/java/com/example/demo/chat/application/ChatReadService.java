@@ -8,12 +8,9 @@ import com.example.demo.chat.domain.ChatMessage;
 import com.example.demo.chat.domain.ChatMessageRepository;
 import com.example.demo.chat.domain.ChatReadState;
 import com.example.demo.chat.domain.ChatReadStateRepository;
-import com.example.demo.chat.infra.ChatMessageRepositoryImpl;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Window;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,22 +20,13 @@ import java.util.Collections;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class ChatReadService {
 
     private final ChatMessageRepository messageRepository;
 
     private final ChatMessageService messageService;
     private final ChatReadStateRepository stateRepository;
-
-    public ChatReadService(
-        ChatMessageRepository messageRepository,
-        ChatMessageService messageService,
-        ChatReadStateRepository stateRepository) {
-
-        this.messageRepository = messageRepository;
-        this.messageService = messageService;
-        this.stateRepository = stateRepository;
-    }
 
     public List<ChatMessage> readPage(String roomId, long cursor, int size) {
         return messageService.findAfter(roomId, cursor, size);
@@ -57,7 +45,7 @@ public class ChatReadService {
     public ChatReadSnapshot markRead(String roomId, String memberId, long lastReadId) {
         // 방·사용자 조합의 ChatReadState를 조회하거나 새로 만드세요.
         ChatReadState state = stateRepository.findByRoomIdAndMemberId(roomId, memberId)
-            .orElse (new ChatReadState(roomId, memberId));
+            .orElse (ChatReadState.create(roomId, memberId));
 
         // Entity의 updateLastReadId로 Cursor 역행을 막으세요.
         state.updateLastReadId(lastReadId);

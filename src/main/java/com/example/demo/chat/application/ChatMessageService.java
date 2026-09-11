@@ -4,25 +4,20 @@ import com.example.demo.chat.application.dto.ChatMessageResponse;
 import com.example.demo.chat.application.dto.CursorResponse;
 import com.example.demo.chat.domain.ChatMessage;
 import com.example.demo.chat.domain.ChatMessageRepository;
-import org.springframework.dao.DataIntegrityViolationException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @Service
+@RequiredArgsConstructor
 public class ChatMessageService {
 
     private final ChatMessageRepository repository;
-
-    public ChatMessageService(ChatMessageRepository repository) {
-        this.repository = repository;
-    }
 
     /**
      * 같은 roomId + clientMessageId 재전송을 기존 DB 메시지로 수렴시킨다.

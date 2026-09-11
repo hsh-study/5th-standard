@@ -39,7 +39,7 @@ class MemberServiceTest {
 
     @Test
     void 회원과_비밀번호가_일치하면_인증된_권한을_반환한다() {
-        Member member = new Member(
+        Member member = Member.create(
                 "admin",
                 "관리자",
                 "encoded-password",
