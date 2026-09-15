@@ -15,12 +15,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 class ChatMessageServiceTest {
 
-    private final ChatMessageService service;
-
     @Autowired
-    ChatMessageServiceTest(ChatMessageRepository repository) {
-        this.service = new ChatMessageService(repository);
-    }
+    ChatMessageService service;
 
     @Test
     void 같은_채팅방의_같은_clientMessageId는_한_메시지로_수렴한다() {

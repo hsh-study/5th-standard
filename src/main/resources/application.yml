@@ -11,6 +11,24 @@ spring:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
 
+  Kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        max.block.ms: 3000
+        delivery.timeout.ms: 10000
+        request.timeout.ms: 5000
+
+kafka:
+  inspection:
+    group-id: ${INSPECTION_GROUP_ID:chat-inspection}
+    listener-auto-start: ${INSPECTION_LISTENER_AUTO_START:true}
+
 
 security:
   jwt:

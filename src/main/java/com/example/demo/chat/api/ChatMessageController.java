@@ -1,6 +1,7 @@
 package com.example.demo.chat.api;
 
 import com.example.demo.chat.api.request.ChatCommand;
+import com.example.demo.chat.application.ChatDeliveryService;
 import com.example.demo.chat.application.ChatMessageService;
 import com.example.demo.chat.application.ChatRoomAccessService;
 import com.example.demo.chat.application.MessageRelay;
@@ -19,7 +20,7 @@ public class ChatMessageController {
 
     private final ChatMessageService messageService;
     private final ChatRoomAccessService accessService;
-    private final MessageRelay messageRelay;
+    private final ChatDeliveryService deliveryService;
 
     @MessageMapping("/live-sales/{liveSaleId}/messages")
     public void send(
@@ -31,7 +32,7 @@ public class ChatMessageController {
         ChatMessage chatMessage = messageService.send(
             liveSaleId, principal.getName(), command.clientMessageId(), command.content());
 
-        messageRelay.publish(chatMessage);
+        deliveryService.publish(chatMessage);
     }
 
 }

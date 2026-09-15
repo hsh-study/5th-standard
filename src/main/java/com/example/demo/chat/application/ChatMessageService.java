@@ -5,9 +5,12 @@ import com.example.demo.chat.application.dto.CursorResponse;
 import com.example.demo.chat.domain.ChatMessage;
 import com.example.demo.chat.domain.ChatMessageRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 import java.util.List;
@@ -18,27 +21,61 @@ import java.util.UUID;
 public class ChatMessageService {
 
     private final ChatMessageRepository repository;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * 같은 roomId + clientMessageId 재전송을 기존 DB 메시지로 수렴시킨다.
      * 완료 조건: 재시도 결과나 INSERT 저장 모두 같은 messageId를 반환한다.
      */
-    @Transactional
     public ChatMessage send(String roomId, String senderId, String clientMessageId, String content) {
 
-        // 저장 전에 roomId + clientMessageId로 기존 메시지를 조회하세요.
-        return repository.findByRoomIdAndClientMessageId(roomId, clientMessageId)
-            .orElseGet(() ->
-                // 처음 확인된 요청만 INSERT 합니다.
-                repository.save(ChatMessage.create(
-                UUID.randomUUID(),
-                roomId,
-                senderId,
-                clientMessageId,
-                content,
-                Instant.now()
-            )));
+        TransactionTemplate transaction = new TransactionTemplate(transactionManager);
+        transaction.setPropagationBehavior(TransactionTemplate.PROPAGATION_REQUIRES_NEW);
 
+        ChatMessage chatMessage = ChatMessage.create(
+            UUID.randomUUID(),
+            roomId,
+            senderId,
+            clientMessageId,
+            content,
+            Instant.now()
+        );
+
+        // INSERT 실패의 rollback 이 끝난 뒤 새 트랜잭션에서 저장된 메시지를 조회
+        try {
+
+            return transaction.execute(status ->
+                repository.findByRoomIdAndClientMessageId(roomId, clientMessageId)
+                    .orElseGet(() -> repository.save(chatMessage)));
+
+        } catch (DataIntegrityViolationException e) {
+
+            return transaction.execute(status ->
+                repository.findByRoomIdAndClientMessageId(roomId, clientMessageId)
+                    .orElseThrow(() -> e));
+        }
+
+    }
+
+    private ChatMessage saveOrFindDuplicate(String roomId, String senderId, String clientMessageId, String content) {
+        ChatMessage chatMessage = ChatMessage.create(
+            UUID.randomUUID(),
+            roomId,
+            senderId,
+            clientMessageId,
+            content,
+            Instant.now()
+        );
+
+        try {
+            // 처음 확인된 요청만 INSERT 합니다.
+            return repository.save(chatMessage);
+
+        } catch (DataIntegrityViolationException e) {
+
+            return repository.findByRoomIdAndClientMessageId(roomId, clientMessageId)
+                .orElseThrow(() -> e);
+        }
     }
 
     /**
