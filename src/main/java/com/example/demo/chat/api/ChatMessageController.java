@@ -9,7 +9,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
@@ -23,7 +22,6 @@ public class ChatMessageController {
     private final MessageRelay messageRelay;
 
     @MessageMapping("/live-sales/{liveSaleId}/messages")
-//    @SendTo("/topic/live-sales/{liveSaleId}")
     public void send(
         @DestinationVariable String liveSaleId,
         @Valid ChatCommand command,

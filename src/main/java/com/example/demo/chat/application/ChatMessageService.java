@@ -30,7 +30,7 @@ public class ChatMessageService {
         return repository.findByRoomIdAndClientMessageId(roomId, clientMessageId)
             .orElseGet(() ->
                 // 처음 확인된 요청만 INSERT 합니다.
-                repository.save(new ChatMessage(
+                repository.save(ChatMessage.create(
                 UUID.randomUUID(),
                 roomId,
                 senderId,

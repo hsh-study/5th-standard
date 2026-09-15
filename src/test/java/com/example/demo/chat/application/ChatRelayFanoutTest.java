@@ -42,11 +42,11 @@ class ChatRelayFanoutTest {
 
         // given
         // 서로 다른 채팅방에 전달할 메시지 두 건을 준비한다.
-        ChatMessage first = new ChatMessage(
+        ChatMessage first = ChatMessage.create(
                 UUID.randomUUID(), "room-1", 42L,
                 "member-1", "message-1", "hello", Instant.now()
         );
-        ChatMessage second = new ChatMessage(
+        ChatMessage second = ChatMessage.create(
                 UUID.randomUUID(), "room-2", 43L,
                 "member-2", "message-2", "world", Instant.now()
         );

@@ -57,7 +57,7 @@ class RedisMessageRelayTest {
 
         // given
         // 식별자와 시간이 정해진 한글 메시지를 준비한다.
-        ChatMessage message = new ChatMessage(
+        ChatMessage message = ChatMessage.create(
                 UUID.randomUUID(), "room-1", 42L,
                 "member-1", "message-1", "한글 메시지",
                 Instant.parse("2026-09-07T00:00:00Z")

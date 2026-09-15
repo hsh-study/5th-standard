@@ -2,11 +2,13 @@ package com.example.demo.chat.domain;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
 @Entity
+@Getter
 @Table(
         name = "chat_participants",
         uniqueConstraints = @UniqueConstraint(
@@ -41,7 +43,4 @@ public class ChatParticipant {
         return new ChatParticipant(liveSaleId, memberId, now);
     }
 
-    public String getRoom() { return roomId; }
-    public String getMember() { return memberId; }
-    public Instant getJoinedAt() { return joinedAt; }
 }

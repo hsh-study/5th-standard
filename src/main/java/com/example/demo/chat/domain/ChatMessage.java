@@ -2,12 +2,14 @@ package com.example.demo.chat.domain;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(
     name = "chat_messages",
@@ -41,7 +43,7 @@ public class ChatMessage {
     @Column(name = "sent_at", nullable = false, updatable = false)
     private Instant sentAt;
 
-    public ChatMessage(
+    private ChatMessage(
         UUID messageId,
         String roomId,
         String senderId,
@@ -57,7 +59,7 @@ public class ChatMessage {
         this.sentAt = sentAt;
     }
 
-    public ChatMessage(
+    private ChatMessage(
         UUID messageId,
         String roomId,
         long sequence,
@@ -70,32 +72,27 @@ public class ChatMessage {
         this.id = sequence;
     }
 
-    public Long getId() {
-        return id;
+    public static ChatMessage create(
+        UUID messageId,
+        String roomId,
+        String senderId,
+        String clientMessageId,
+        String content,
+        Instant sentAt
+    ) {
+        return new ChatMessage(messageId, roomId, senderId, clientMessageId, content, sentAt);
     }
 
-    public UUID getMessageId() {
-        return messageId;
-    }
-
-    public String getRoomId() {
-        return roomId;
-    }
-
-    public String getSenderId() {
-        return senderId;
-    }
-
-    public String getClientMessageId() {
-        return clientMessageId;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public Instant getSentAt() {
-        return sentAt;
+    public static ChatMessage create(
+        UUID messageId,
+        String roomId,
+        long sequence,
+        String senderId,
+        String clientMessageId,
+        String content,
+        Instant sentAt
+    ) {
+        return new ChatMessage(messageId, roomId, sequence, senderId, clientMessageId, content, sentAt);
     }
 
 }

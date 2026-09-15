@@ -35,6 +35,7 @@ class MemberServiceTest {
     void setUp() {
         when(passwordEncoder.encode(anyString())).thenReturn("dummy-password-hash");
         memberService = new MemberService(memberRepository, passwordEncoder);
+        memberService.encodeDummyPassword();
     }
 
     @Test

@@ -27,7 +27,7 @@ public class ChatRoomAccessService {
             participantRepository.saveAndFlush(ChatParticipant.create(liveSaleId, memberId, Instant.now()));
         }
         Set<String> participants = participantRepository.findAllByRoomIdOrderByIdAsc(liveSaleId).stream()
-            .map(ChatParticipant::getMember)
+            .map(ChatParticipant::getMemberId)
             .collect(Collectors.toUnmodifiableSet());
         return new Membership(liveSaleId, memberId, participants);
     }

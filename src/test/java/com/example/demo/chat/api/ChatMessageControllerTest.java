@@ -32,7 +32,7 @@ class ChatMessageControllerTest {
     void 참여_확인과_저장_후_반환된_메시지를_한_번_발행한다() {
         // given
         // 저장 결과로 반환할 메시지를 준비한다.
-        ChatMessage message = new ChatMessage(
+        ChatMessage message = ChatMessage.create(
                 UUID.randomUUID(), "room-1", 42L,
                 "member-1", "message-1", "hello", Instant.now()
         );

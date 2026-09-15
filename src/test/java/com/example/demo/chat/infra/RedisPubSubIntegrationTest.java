@@ -53,7 +53,7 @@ class RedisPubSubIntegrationTest {
                 assertThat(a.getBean(RedisMessageListenerContainer.class).isRunning()).isTrue();
                 assertThat(b.getBean(RedisMessageListenerContainer.class).isRunning()).isTrue();
 
-                ChatMessage message = new ChatMessage(
+                ChatMessage message = ChatMessage.create(
                         UUID.randomUUID(), "room-1", 42L,
                         "member-1", "message-1", "한글 Redis 통신",
                         Instant.parse("2026-09-11T00:00:00Z")
