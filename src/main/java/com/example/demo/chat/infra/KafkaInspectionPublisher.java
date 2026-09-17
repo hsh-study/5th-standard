@@ -1,6 +1,6 @@
 package com.example.demo.chat.infra;
 
-import com.example.demo.chat.application.InspectionPublisher;
+import com.example.demo.chat.application.event.InspectionPublisher;
 import com.example.demo.chat.application.dto.ChatMessageRecorded;
 import com.example.demo.chat.config.KafkaInspectionConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;

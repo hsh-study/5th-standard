@@ -1,6 +1,7 @@
 package com.example.demo.chat.application;
 
 import com.example.demo.chat.application.dto.ChatMessageRecorded;
+import com.example.demo.chat.application.event.InspectionPublisher;
 import com.example.demo.chat.domain.ChatMessage;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;

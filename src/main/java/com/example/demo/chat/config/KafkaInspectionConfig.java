@@ -14,6 +14,7 @@ import org.springframework.kafka.listener.CommonContainerStoppingErrorHandler;
 import org.springframework.kafka.listener.ContainerProperties;
 
 import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @EnableKafka
@@ -35,13 +36,16 @@ public class KafkaInspectionConfig {
     @Bean
     ConcurrentKafkaListenerContainerFactory<String, String> inspectionFactory(KafkaProperties properties) {
 
-        var props=new HashMap<String, Object>(properties.buildConsumerProperties());
+        Map<String, Object> props = new HashMap<>(properties.buildConsumerProperties());
+
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, 1);
 
-        var factory=new ConcurrentKafkaListenerContainerFactory<String, String>();
+        ConcurrentKafkaListenerContainerFactory<String, String> factory =
+            new ConcurrentKafkaListenerContainerFactory<>();
+
         factory.setConsumerFactory(new DefaultKafkaConsumerFactory<>(props));
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
         factory.setCommonErrorHandler(new CommonContainerStoppingErrorHandler());

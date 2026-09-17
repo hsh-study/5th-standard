@@ -1,5 +1,6 @@
-package com.example.demo.chat.application;
+package com.example.demo.chat.application.event;
 
+import com.example.demo.chat.application.ChatInspectionService;
 import com.example.demo.chat.application.dto.ChatMessageRecorded;
 import com.example.demo.chat.config.KafkaInspectionConfig;
 import com.example.demo.chat.domain.ChatInspectionResult;
