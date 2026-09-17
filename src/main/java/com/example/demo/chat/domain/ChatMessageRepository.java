@@ -7,8 +7,12 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long>, ChatMessageCustomRepository {
+
+    // messageId 를 이용한 채팅 메시지 조회
+    Optional<ChatMessage> findByMessageId(UUID messageId);
 
     Optional<ChatMessage> findByRoomIdAndClientMessageId(String roomId, String clientMessageId);
 

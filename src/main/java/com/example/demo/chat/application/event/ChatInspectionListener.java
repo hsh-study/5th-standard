@@ -20,6 +20,7 @@ public class ChatInspectionListener {
 
     private final ObjectMapper mapper;
     private final ChatInspectionService service;
+    private final ChatInspectionFaults faults;
 
     @KafkaListener(
         id = KafkaInspectionConfig.LISTENER,
@@ -33,6 +34,9 @@ public class ChatInspectionListener {
         ChatInspectionResult result = service.inspect(event);
 
         log.info("검사 결과 저장 eventId={} verdict={}", event.eventId(), result.getVerdict());
+
+        // 검사 결과의 DB 커밋이 끝난 뒤 ACK 전 장애를 재현합니다.
+        faults.check(event.eventId(), ChatInspectionFaults.Point.AFTER_COMMIT);
 
         ack.acknowledge();
     }

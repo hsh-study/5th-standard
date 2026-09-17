@@ -29,6 +29,14 @@ kafka:
     group-id: ${INSPECTION_GROUP_ID:chat-inspection}
     listener-auto-start: ${INSPECTION_LISTENER_AUTO_START:true}
 
+    ## 검사 실패 재현을 위한 설정 속성 값
+    lab-enabled: true
+    fault-event-id: ${INSPECTION_FAULT_EVENT_ID:}
+    fault-point: ${INSPECTION_FAULT_POINT:BEFORE_PROCESS}
+    fault-count: ${INSPECTION_FAULT_COUNT:0}
+
+    ## 재발행할 메시지 ID 환경변수
+    relay-message-id: ${INSPECTION_REPLAY_MESSAGE_ID}
 
 security:
   jwt:
